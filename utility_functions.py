@@ -4,17 +4,21 @@ import numpy as np
 from scipy.io import wavfile
 
 
-def load_dataset(path_to_data):
+def load_dataset(path_to_data, dict_labels=None):
     path_listdir = os.listdir(path_to_data)
 
     raw_data = []
-    path_listdir = path_listdir[:int(len(path_listdir) / 10)]
+    path_listdir = path_listdir[:int(len(path_listdir) / 1)]
 
     for sound in path_listdir:
         ret, sound_data = wavfile.read(path_to_data + sound)
-        raw_data.append(np.array(sound_data))
+        if dict_labels is None:
+            raw_data.append(np.array(sound_data))
 
-    print(len(raw_data))
+        else:
+            raw_data.append([np.array(sound_data), dict_labels[sound]])
+    # DEBUG
+    # print(len(raw_data))
     return raw_data
 
 
@@ -44,11 +48,12 @@ def padding_data(data, length):
 
 
 def get_random_segment(sound):
-    length_segment = 16000
-    if len(sound) < length_segment:
-        print(len(sound))
+    length_segment = 48000
+    if len(sound) <= length_segment:
+        pad_number = int(((length_segment - len(sound)) / 2 +1))
+        # DEBUG
+        # print(len(sound) + pad_number*2)
+        sound = np.pad(sound, pad_number, 'reflect')
+    random_number = np.random.randint(0, abs(len(sound) - length_segment))
+    return sound[random_number:random_number+ length_segment]
 
-        sound = np.pad(sound, int((length_segment - len(sound) / 2)), 'reflect')
-
-    random_number = np.random.randint(0, len(sound) - length_segment)
-    return sound[random_number:length_segment + random_number]
