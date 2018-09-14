@@ -1,10 +1,13 @@
 import os
 from math import sqrt
-
+import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import GRU, Dense, Activation, LSTM, Dropout, Conv2D, Flatten, np
+from speechpy.feature import lmfe
 
 FREQ = 16000
 WINDOW_MS = 0.02
-path_to_file = '/home/alexandr/data/audio/'
+path_to_file = './audio/'
 path_listdir = os.listdir(path_to_file)
 window_length = int(WINDOW_MS * FREQ)
 threshold = 200
@@ -16,18 +19,30 @@ def calculate_RMS(frame):
     RMS = sqrt(summ / len(frame))
     return RMS
 
+class Detector:
 
-def detect_event(data):
-    frames = []
-    threshold_detector = 2000
-    overall_RMS = 0
-    for i in range(int(len(data) / window_length)):
-        frame = data[i * window_length:window_length * (1 + i)]
-        overall_RMS += calculate_RMS(frame)
-        frames.append(data[i * window_length:window_length * (1 + i)])
-    if overall_RMS > threshold_detector:
-        isEvent = True
-    else:
-        isEvent = False
+    def __init__(self, model = 2):
+        self.model = Sequential()
+        if model == 2:
+            self.model.add(LSTM(256, input_shape=(298,40), return_sequences=True))
 
-    return overall_RMS, isEvent
+            self.model.add(LSTM(128,  return_sequences=False))
+
+            self.model.add(Dense(2))
+            self.model.add(Activation('sigmoid'))
+            self.model.load_weights('./models/detector_model_2')
+        else:
+            self.model.add(LSTM(256, input_shape=(298, 40), return_sequences=False))
+
+            self.model.add(Dense(2))
+            self.model.add(Activation('sigmoid'))
+            self.model.load_weights('./models/detector_model_2')
+
+    def detect_event(self, data):
+
+
+        feature = lmfe(data.astype(float), 16000)
+        isEvent = np.argmax(self.model.predict(feature.reshape(-1, 298, 40)),axis = 1) == 1
+
+
+        return  isEvent

@@ -1,7 +1,9 @@
 import os
 
+import librosa
 import numpy as np
 from scipy.io import wavfile
+from speechpy.feature import lmfe
 
 
 def load_dataset(path_to_data, dict_labels=None):
@@ -18,7 +20,7 @@ def load_dataset(path_to_data, dict_labels=None):
             raw_data.append([np.array(sound_data), dict_labels[sound]])
     # DEBUG
     # print(len(raw_data))
-    np.savetxt(path_to_data + 'filenames.txt',path_listdir, fmt = '%s')
+    np.savetxt('./meta/filenames_' + path_to_data[2:-1] + '.txt', path_listdir, fmt='%s')
     return raw_data
 
 
@@ -47,13 +49,58 @@ def padding_data(data, length):
     return pad_sound
 
 
+# random segmentation function, return 3-sec sequence
 def get_random_segment(sound):
     length_segment = 48000
     if len(sound) <= length_segment:
-        pad_number = int(((length_segment - len(sound)) / 2 +1))
+        pad_number = int(((length_segment - len(sound)) / 2 + 1))
         # DEBUG
         # print(len(sound) + pad_number*2)
         sound = np.pad(sound, pad_number, 'reflect')
     random_number = np.random.randint(0, abs(len(sound) - length_segment))
-    return sound[random_number:random_number+ length_segment]
+    return sound[random_number:random_number + length_segment]
 
+
+def extract_feature(data, mode='mfcc'):
+    extracted_features = []
+    if mode == 'mfcc':
+        for sound in data:
+            feature = librosa.feature.mfcc(sound.astype(float), sr=16000, n_mfcc=20)
+            extracted_features.append(feature)
+
+    elif mode == 'mbe':
+        for sound in data:
+            feature = lmfe(sound.astype(float), 16000)
+            extracted_features.append(feature)
+
+        return extracted_features
+
+
+def segment_audio(data, detector = None):
+    segmented_data = []
+
+    for index, sound in enumerate(data[:,0]):
+        fragment = get_random_segment(sound)
+        if detector is not None:
+            if data[index, 1] == '0':
+
+                if detector.detect_event(fragment):
+                    print('error back')
+                    fragment = get_random_segment(sound)
+
+            else:
+                if not detector.detect_event(fragment):
+                    fragment = get_random_segment(sound)
+                    print('error event')
+        segmented_data.append(fragment)
+    return segmented_data
+
+
+def segment_audio_unknown(data):
+    segmented_data = []
+
+    for index, sound in enumerate(data):
+
+        fragment = get_random_segment(sound)
+        segmented_data.append(fragment)
+    return segmented_data
