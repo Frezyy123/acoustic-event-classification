@@ -3,7 +3,7 @@ import re
 
 import numpy as np
 
-path_to_files = '/home/alexandr/data/test/'
+path_to_files = './test/'
 text_labels = {'background': '0', 'bags': '1', 'door': '2', 'keyboard': '3', 'knocking': '4', 'ring': '5', 'speech': '6',
                'tool': '7', 'unknown': '8'}
 
